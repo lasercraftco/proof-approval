@@ -1,6 +1,6 @@
 # The Lasercraft Company Proof Approval (Enhanced)
 
-This is a white-label proof approval app with advanced features for managing customer proofs efficiently.
+This is a white-label proof approval app with advanced features for managing customer proofs efficiently. 
 
 ## Features
 
