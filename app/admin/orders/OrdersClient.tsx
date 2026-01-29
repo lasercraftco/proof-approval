@@ -50,6 +50,7 @@ type ShipStationStatus = {
 type SyncResult = {
   success: boolean;
   configured: boolean;
+  requestId?: string;
   runId?: string;
   stats?: {
     fetched: number;
@@ -61,6 +62,18 @@ type SyncResult = {
   message?: string;
   error?: string;
   missingEnvVars?: string[];
+  timestamp?: string;
+  httpStatus?: number;
+};
+
+type TestResult = {
+  success: boolean;
+  requestId?: string;
+  message: string;
+  error?: string;
+  stores?: Array<{ id: number; name: string; marketplace: string }>;
+  rateLimitRemaining?: number | null;
+  httpStatus?: number;
 };
 
 // ============================================================================
@@ -87,6 +100,21 @@ function formatRelativeTime(dateStr: string | null): string {
 function formatDateTime(dateStr: string | null): string {
   if (!dateStr) return '—';
   return new Date(dateStr).toLocaleString();
+}
+
+// Generate debug info for support (no secrets)
+function generateDebugInfo(result: SyncResult | TestResult | null, action: string): string {
+  if (!result) return '';
+  return JSON.stringify({
+    action,
+    timestamp: new Date().toISOString(),
+    requestId: result.requestId || 'N/A',
+    success: result.success,
+    error: result.error || null,
+    message: result.message || null,
+    httpStatus: result.httpStatus || null,
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A',
+  }, null, 2);
 }
 
 // ============================================================================
@@ -125,7 +153,8 @@ export default function OrdersClient({ orders }: { orders: Order[] }) {
   const [showSyncLog, setShowSyncLog] = useState(false);
   const [showErrorDetails, setShowErrorDetails] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
-  const [testResult, setTestResult] = useState<{ success: boolean; message: string; stores?: Array<{ name: string; marketplace: string }> } | null>(null);
+  const [testResult, setTestResult] = useState<TestResult | null>(null);
+  const [copiedDebug, setCopiedDebug] = useState(false);
 
   // Fetch ShipStation status on mount
   const fetchStatus = useCallback(async () => {
@@ -134,6 +163,8 @@ export default function OrdersClient({ orders }: { orders: Order[] }) {
       if (res.ok) {
         const data = await res.json();
         setSSStatus(data);
+      } else {
+        console.error('Failed to fetch ShipStation status:', res.status, res.statusText);
       }
     } catch (err) {
       console.error('Failed to fetch ShipStation status:', err);
@@ -146,11 +177,12 @@ export default function OrdersClient({ orders }: { orders: Order[] }) {
     fetchStatus();
   }, [fetchStatus]);
 
-  // Sync handler
+  // Sync handler with improved error handling
   const handleSync = async (syncType: string = 'incremental') => {
     setSyncing(true);
     setSyncResult(null);
     setShowErrorDetails(false);
+    setCopiedDebug(false);
 
     try {
       const res = await fetch('/api/shipstation/sync', {
@@ -158,42 +190,121 @@ export default function OrdersClient({ orders }: { orders: Order[] }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ syncType }),
       });
+      
       const data: SyncResult = await res.json();
+      
+      // Attach HTTP status for debug purposes
+      if (!res.ok && !data.httpStatus) {
+        data.httpStatus = res.status;
+      }
+      
       setSyncResult(data);
 
       if (data.success) {
         await fetchStatus();
         router.refresh();
-        setTimeout(() => setSyncResult(null), 10000);
+        // Keep success message visible longer
+        setTimeout(() => setSyncResult(null), 15000);
       }
     } catch (err) {
-      setSyncResult({
+      const errorResult: SyncResult = {
         success: false,
         configured: ssStatus?.configured ?? false,
-        error: err instanceof Error ? err.message : 'Network error',
-      });
+        error: err instanceof Error ? err.message : 'Network error - check your connection',
+        timestamp: new Date().toISOString(),
+      };
+      setSyncResult(errorResult);
     } finally {
       setSyncing(false);
     }
   };
 
-  // Test connection handler
+  // Test connection handler with improved feedback
   const handleTestConnection = async () => {
     setTestingConnection(true);
     setTestResult(null);
+    setCopiedDebug(false);
 
     try {
       const res = await fetch('/api/shipstation/test', { method: 'POST' });
-      const data = await res.json();
+      const data: TestResult = await res.json();
+      
+      if (!res.ok && !data.httpStatus) {
+        data.httpStatus = res.status;
+      }
+      
       setTestResult(data);
     } catch (err) {
       setTestResult({
         success: false,
-        message: err instanceof Error ? err.message : 'Connection failed',
+        message: err instanceof Error ? err.message : 'Connection failed - network error',
+        error: 'network_error',
       });
     } finally {
       setTestingConnection(false);
     }
+  };
+
+  // Copy debug info to clipboard
+  const handleCopyDebugInfo = async (result: SyncResult | TestResult | null, action: string) => {
+    const debugInfo = generateDebugInfo(result, action);
+    try {
+      await navigator.clipboard.writeText(debugInfo);
+      setCopiedDebug(true);
+      setTimeout(() => setCopiedDebug(false), 3000);
+    } catch {
+      // Fallback for older browsers
+      const textarea = document.createElement('textarea');
+      textarea.value = debugInfo;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setCopiedDebug(true);
+      setTimeout(() => setCopiedDebug(false), 3000);
+    }
+  };
+
+  // Get actionable error message
+  const getActionableError = (result: SyncResult | TestResult): { message: string; action: string } => {
+    const error = result.error || '';
+    const httpStatus = result.httpStatus;
+    
+    if (httpStatus === 401 || error.includes('credentials') || error.includes('Invalid')) {
+      return {
+        message: 'Invalid API credentials',
+        action: 'Go to ShipStation → Settings → Account → API Settings and verify your API Key and Secret are correct.',
+      };
+    }
+    if (httpStatus === 429 || error.includes('rate limit')) {
+      return {
+        message: 'Rate limit exceeded',
+        action: 'ShipStation allows 40 requests per minute. Wait a few minutes and try again.',
+      };
+    }
+    if (error.includes('not configured') || error.includes('missing')) {
+      return {
+        message: 'ShipStation not configured',
+        action: 'Set SHIPSTATION_API_KEY and SHIPSTATION_API_SECRET in your Vercel environment variables.',
+      };
+    }
+    if (error.includes('network') || error.includes('fetch') || error.includes('ECONNREFUSED')) {
+      return {
+        message: 'Network connection error',
+        action: 'Check your internet connection and try again. If the problem persists, ShipStation may be experiencing issues.',
+      };
+    }
+    if (error.includes('Database') || error.includes('supabase')) {
+      return {
+        message: 'Database error',
+        action: 'There was a problem saving sync results. Check your Supabase connection and try again.',
+      };
+    }
+    
+    return {
+      message: result.message || error || 'Unknown error',
+      action: 'Try again. If the problem persists, copy the debug info below and contact support.',
+    };
   };
 
   // Filtered orders
@@ -335,7 +446,7 @@ export default function OrdersClient({ orders }: { orders: Order[] }) {
               disabled={syncing || !ssStatus?.configured}
               className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                 ssStatus?.configured
-                  ? 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-400'
+                  ? 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
               title={!ssStatus?.configured ? 'Configure ShipStation first' : 'Sync orders from ShipStation'}
@@ -349,7 +460,7 @@ export default function OrdersClient({ orders }: { orders: Order[] }) {
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
               </svg>
-              {syncing ? 'Syncing...' : 'Sync ShipStation Orders'}
+              {syncing ? 'Syncing...' : 'Sync Orders'}
             </button>
           </div>
         </div>
@@ -357,30 +468,50 @@ export default function OrdersClient({ orders }: { orders: Order[] }) {
         {/* Test Connection Result */}
         {testResult && (
           <div className={`mt-3 p-3 rounded-lg text-sm ${testResult.success ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50 border border-red-200'}`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            <div className="flex items-start justify-between">
+              <div className="flex items-start gap-2 flex-1">
                 {testResult.success ? (
-                  <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <svg className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 ) : (
-                  <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                   </svg>
                 )}
-                <span className={testResult.success ? 'text-emerald-800' : 'text-red-800'}>{testResult.message}</span>
+                <div className="flex-1">
+                  <span className={testResult.success ? 'text-emerald-800 font-medium' : 'text-red-800 font-medium'}>
+                    {testResult.success ? testResult.message : getActionableError(testResult).message}
+                  </span>
+                  {!testResult.success && (
+                    <p className="text-red-700 text-xs mt-1">{getActionableError(testResult).action}</p>
+                  )}
+                  {testResult.stores && testResult.stores.length > 0 && (
+                    <div className="mt-2 text-xs text-emerald-700">
+                      Connected stores: {testResult.stores.map(s => `${s.name} (${s.marketplace})`).join(', ')}
+                    </div>
+                  )}
+                  {testResult.rateLimitRemaining !== null && testResult.rateLimitRemaining !== undefined && (
+                    <div className="mt-1 text-xs text-gray-500">
+                      API requests remaining: {testResult.rateLimitRemaining}
+                    </div>
+                  )}
+                  {!testResult.success && (
+                    <button 
+                      onClick={() => handleCopyDebugInfo(testResult, 'test_connection')}
+                      className="mt-2 text-xs text-red-600 underline hover:no-underline"
+                    >
+                      {copiedDebug ? '✓ Copied!' : 'Copy debug info'}
+                    </button>
+                  )}
+                </div>
               </div>
-              <button onClick={() => setTestResult(null)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setTestResult(null)} className="text-gray-400 hover:text-gray-600 flex-shrink-0 ml-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
-            {testResult.stores && testResult.stores.length > 0 && (
-              <div className="mt-2 text-xs text-emerald-700">
-                Connected stores: {testResult.stores.map(s => `${s.name} (${s.marketplace})`).join(', ')}
-              </div>
-            )}
           </div>
         )}
 
@@ -400,7 +531,7 @@ export default function OrdersClient({ orders }: { orders: Order[] }) {
                     </svg>
                   )}
                   <span className={`font-medium ${syncResult.success ? 'text-emerald-800' : 'text-red-800'}`}>
-                    {syncResult.success ? 'Sync Complete!' : 'Sync Failed'}
+                    {syncResult.success ? 'Sync Complete!' : getActionableError(syncResult).message}
                   </span>
                 </div>
                 {syncResult.stats && (
@@ -414,19 +545,29 @@ export default function OrdersClient({ orders }: { orders: Order[] }) {
                     )}
                   </div>
                 )}
-                {syncResult.error && (
+                {!syncResult.success && (
                   <div className="mt-2">
+                    <p className="text-red-700 text-xs">{getActionableError(syncResult).action}</p>
                     <button 
                       onClick={() => setShowErrorDetails(!showErrorDetails)}
-                      className="text-xs text-red-600 underline hover:no-underline"
+                      className="mt-2 text-xs text-red-600 underline hover:no-underline"
                     >
                       {showErrorDetails ? 'Hide details' : 'Show error details'}
                     </button>
                     {showErrorDetails && (
                       <div className="mt-2 p-2 bg-white rounded border border-red-200 text-xs font-mono text-red-700 break-words">
                         {syncResult.error}
+                        {syncResult.requestId && (
+                          <div className="mt-1 text-gray-500">Request ID: {syncResult.requestId}</div>
+                        )}
                       </div>
                     )}
+                    <button 
+                      onClick={() => handleCopyDebugInfo(syncResult, 'sync_orders')}
+                      className="mt-2 ml-2 text-xs text-red-600 underline hover:no-underline"
+                    >
+                      {copiedDebug ? '✓ Copied!' : 'Copy debug info'}
+                    </button>
                   </div>
                 )}
               </div>
