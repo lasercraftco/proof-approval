@@ -46,19 +46,19 @@ export default function DashboardTable({ orders }: { orders: Order[] }) {
               onClick={() => router.push(`/admin/orders/${order.id}`)}
             >
               <td>
-                <span className="font-medium text-gray-900">#{order.order_number}</span>
+                <span className="font-medium text-[var(--foreground)]">#{order.order_number}</span>
               </td>
               <td>
-                <div className="text-gray-900 truncate max-w-[150px]">{order.customer_name || '—'}</div>
-                <div className="text-xs text-gray-500 truncate max-w-[150px]">{order.customer_email}</div>
+                <div className="text-[var(--foreground)] truncate max-w-[150px]">{order.customer_name || '—'}</div>
+                <div className="text-xs text-[var(--muted-foreground)] truncate max-w-[150px]">{order.customer_email}</div>
               </td>
               <td>
-                <div className="truncate max-w-[150px] text-gray-700">{order.product_name || order.sku || '—'}</div>
+                <div className="truncate max-w-[150px] text-[var(--card-foreground)]">{order.product_name || order.sku || '—'}</div>
               </td>
               <td>
                 <span className={config.class}>{config.label}</span>
               </td>
-              <td className="text-right font-medium tabular-nums">
+              <td className="text-right font-medium tabular-nums text-[var(--foreground)]">
                 {order.order_total ? `$${order.order_total.toFixed(2)}` : '—'}
               </td>
             </tr>
@@ -66,7 +66,7 @@ export default function DashboardTable({ orders }: { orders: Order[] }) {
         })}
         {orders.length === 0 && (
           <tr>
-            <td colSpan={5} className="text-center py-8 text-gray-500">
+            <td colSpan={5} className="text-center py-8 text-[var(--muted-foreground)]">
               No orders yet
             </td>
           </tr>

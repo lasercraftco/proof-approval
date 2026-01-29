@@ -99,11 +99,11 @@ export default async function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-gray-900">Dashboard</h1>
-          <p className="text-sm text-gray-500">Overview of your proof approval workflow</p>
+          <h1 className="text-lg font-semibold text-[var(--foreground)]">Dashboard</h1>
+          <p className="text-sm text-[var(--muted-foreground)]">Overview of your proof approval workflow</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-[var(--muted-foreground)]">
             Last sync: {formatLastSync(lastSync)}
           </div>
           <SyncButton />
@@ -127,15 +127,15 @@ export default async function DashboardPage() {
           <div className="stat-label">This Week</div>
         </Link>
         <Link href="/admin/orders?status=proof_sent" className="stat-card">
-          <div className="stat-value text-amber-600">{stats.pending}</div>
+          <div className="stat-value text-amber-600 dark:text-amber-400">{stats.pending}</div>
           <div className="stat-label">Awaiting Response</div>
         </Link>
         <Link href="/admin/orders?status=approved" className="stat-card">
-          <div className="stat-value text-emerald-600">{stats.approved}</div>
+          <div className="stat-value text-emerald-600 dark:text-emerald-400">{stats.approved}</div>
           <div className="stat-label">Approved</div>
         </Link>
         <div className="stat-card">
-          <div className="stat-value text-emerald-600">{stats.approvalRate}%</div>
+          <div className="stat-value text-emerald-600 dark:text-emerald-400">{stats.approvalRate}%</div>
           <div className="stat-label">Approval Rate</div>
         </div>
         <div className="stat-card">
@@ -169,7 +169,7 @@ export default async function DashboardPage() {
               </h2>
               <span className="badge-yellow">{needsAttention.length}</span>
             </div>
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-[var(--border-subtle)]">
               {needsAttention.length > 0 ? (
                 needsAttention.map(order => {
                   const daysAgo = Math.floor((Date.now() - new Date(order.created_at).getTime()) / (1000 * 60 * 60 * 24));
@@ -177,20 +177,20 @@ export default async function DashboardPage() {
                     <Link
                       key={order.id}
                       href={`/admin/orders/${order.id}`}
-                      className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
+                      className="flex items-center justify-between px-4 py-3 hover:bg-[var(--muted)]/50 transition-colors"
                     >
                       <div className="min-w-0">
-                        <div className="font-medium text-gray-900 text-sm">#{order.order_number}</div>
-                        <div className="text-xs text-gray-500 truncate">{order.customer_name || order.customer_email}</div>
+                        <div className="font-medium text-[var(--foreground)] text-sm">#{order.order_number}</div>
+                        <div className="text-xs text-[var(--muted-foreground)] truncate">{order.customer_name || order.customer_email}</div>
                       </div>
-                      <span className="text-xs text-red-600 font-medium whitespace-nowrap ml-2">{daysAgo}d waiting</span>
+                      <span className="text-xs text-red-600 dark:text-red-400 font-medium whitespace-nowrap ml-2">{daysAgo}d waiting</span>
                     </Link>
                   );
                 })
               ) : (
                 <div className="px-4 py-8 text-center">
                   <div className="text-2xl mb-2">✓</div>
-                  <div className="text-sm text-gray-500">All caught up!</div>
+                  <div className="text-sm text-[var(--muted-foreground)]">All caught up!</div>
                 </div>
               )}
             </div>
@@ -208,13 +208,13 @@ export default async function DashboardPage() {
                   <Link
                     key={status}
                     href={`/admin/orders?status=${status}`}
-                    className="flex items-center justify-between px-3 py-2 rounded-md hover:bg-gray-50 transition-colors"
+                    className="flex items-center justify-between px-3 py-2 rounded-md hover:bg-[var(--muted)]/50 transition-colors"
                   >
                     <div className="flex items-center gap-2">
                       <span className={`w-2 h-2 rounded-full ${config.dot}`}></span>
-                      <span className="text-sm text-gray-700">{config.label}</span>
+                      <span className="text-sm text-[var(--card-foreground)]">{config.label}</span>
                     </div>
-                    <span className="text-sm font-semibold text-gray-900 tabular-nums">{count}</span>
+                    <span className="text-sm font-semibold text-[var(--foreground)] tabular-nums">{count}</span>
                   </Link>
                 );
               })}

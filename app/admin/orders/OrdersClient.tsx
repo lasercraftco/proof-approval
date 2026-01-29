@@ -673,8 +673,8 @@ export default function OrdersClient({ orders }: { orders: Order[] }) {
       {/* ================================================================== */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-gray-900">Orders</h1>
-          <p className="text-sm text-gray-500">{filtered.length} of {orders.length} orders</p>
+          <h1 className="text-lg font-semibold text-[var(--foreground)]">Orders</h1>
+          <p className="text-sm text-[var(--muted-foreground)]">{filtered.length} of {orders.length} orders</p>
         </div>
         <Link href="/admin/orders/new" className="btn-primary">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -690,7 +690,7 @@ export default function OrdersClient({ orders }: { orders: Order[] }) {
       <div className="flex flex-wrap items-center gap-3">
         {/* Search */}
         <div className="relative flex-1 min-w-[200px] max-w-xs">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
           </svg>
           <input
@@ -729,7 +729,7 @@ export default function OrdersClient({ orders }: { orders: Order[] }) {
         {/* Selection Actions */}
         {selected.size > 0 && (
           <div className="flex items-center gap-2 ml-auto">
-            <span className="text-sm text-gray-600">{selected.size} selected</span>
+            <span className="text-sm text-[var(--muted-foreground)]">{selected.size} selected</span>
             <button className="btn-secondary btn-sm">Send Reminders</button>
             <button className="btn-secondary btn-sm" onClick={() => setSelected(new Set())}>Clear</button>
           </div>
@@ -750,8 +750,8 @@ export default function OrdersClient({ orders }: { orders: Order[] }) {
             onClick={() => setStatusFilter(f.value)}
             className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
               statusFilter === f.value 
-                ? 'bg-gray-900 text-white border-gray-900' 
-                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                ? 'bg-[var(--foreground)] text-[var(--background)] border-[var(--foreground)]' 
+                : 'bg-[var(--card)] text-[var(--muted-foreground)] border-[var(--border)] hover:border-gray-400 dark:hover:border-slate-500'
             }`}
           >
             {f.label}
@@ -797,14 +797,14 @@ export default function OrdersClient({ orders }: { orders: Order[] }) {
                       type="checkbox"
                       checked={isSelected}
                       onChange={() => toggleOne(order.id)}
-                      className="rounded border-gray-300"
+                      className="rounded border-[var(--border)] bg-[var(--input)]"
                     />
                   </td>
                   <td>
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900">#{order.order_number}</span>
+                      <span className="font-medium text-[var(--foreground)]">#{order.order_number}</span>
                       {order.platform && (
-                        <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded uppercase">
+                        <span className="text-[10px] px-1.5 py-0.5 bg-[var(--muted)] text-[var(--muted-foreground)] rounded uppercase">
                           {order.platform}
                         </span>
                       )}
@@ -812,23 +812,23 @@ export default function OrdersClient({ orders }: { orders: Order[] }) {
                   </td>
                   <td>
                     <div className="max-w-[180px]">
-                      <div className="text-gray-900 truncate">{order.customer_name || '—'}</div>
-                      <div className="text-xs text-gray-500 truncate">{order.customer_email}</div>
+                      <div className="text-[var(--foreground)] truncate">{order.customer_name || '—'}</div>
+                      <div className="text-xs text-[var(--muted-foreground)] truncate">{order.customer_email}</div>
                     </div>
                   </td>
                   <td>
                     <div className="max-w-[180px]">
-                      <div className="text-gray-700 truncate">{order.product_name || order.sku || '—'}</div>
-                      {order.quantity && <div className="text-xs text-gray-500">Qty: {order.quantity}</div>}
+                      <div className="text-[var(--card-foreground)] truncate">{order.product_name || order.sku || '—'}</div>
+                      {order.quantity && <div className="text-xs text-[var(--muted-foreground)]">Qty: {order.quantity}</div>}
                     </div>
                   </td>
                   <td>
                     <span className={config.class}>{config.label}</span>
                   </td>
-                  <td className="text-right font-medium tabular-nums text-gray-900">
+                  <td className="text-right font-medium tabular-nums text-[var(--foreground)]">
                     {order.order_total ? `$${order.order_total.toFixed(2)}` : '—'}
                   </td>
-                  <td className="text-gray-500 text-sm tabular-nums">
+                  <td className="text-[var(--muted-foreground)] text-sm tabular-nums">
                     {new Date(order.created_at).toLocaleDateString()}
                   </td>
                 </tr>

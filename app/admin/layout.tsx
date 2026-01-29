@@ -23,7 +23,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const settings = await getSettings();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[var(--background)]">
       <AdminHeader
         businessName={settings?.company_name || 'ProofFlow'}
         accentColor={settings?.accent_color || '#1d3161'}

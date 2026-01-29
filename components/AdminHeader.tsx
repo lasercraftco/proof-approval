@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import GlobalSearch from './GlobalSearch';
 import NotificationsCenter from './NotificationsCenter';
+import { ThemeToggle } from './ThemeProvider';
 
 // Inline icons for header
 const Icons = {
@@ -157,16 +158,16 @@ export default function AdminHeader({
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-gray-200">
+    <header className="sticky top-0 z-40 bg-accent border-b border-accent-hover">
       <div className="h-14 px-4 flex items-center justify-between gap-4">
         {/* Logo */}
         <div className="flex items-center gap-6">
-          <Link href="/admin" className="flex items-center gap-2 font-semibold text-gray-900">
+          <Link href="/admin" className="flex items-center gap-2 font-semibold text-white">
             {logoUrl ? (
               <img src={logoUrl} alt={businessName} className="h-7 w-auto" />
             ) : (
               <>
-                <div className="w-7 h-7 rounded-md flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: accentColor }}>
+                <div className="w-7 h-7 rounded-md flex items-center justify-center bg-white/20 text-white text-xs font-bold">
                   {businessName.charAt(0)}
                 </div>
                 <span className="hidden sm:block text-sm">{businessName}</span>
@@ -185,8 +186,8 @@ export default function AdminHeader({
                   href={item.href}
                   className={`flex items-center gap-1.5 px-3 py-1.5 mx-0.5 text-sm font-medium rounded-md transition-colors ${
                     active 
-                      ? 'bg-gray-100 text-gray-900' 
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      ? 'bg-white/20 text-white' 
+                      : 'text-white/70 hover:text-white hover:bg-white/10'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -201,8 +202,8 @@ export default function AdminHeader({
                 onClick={() => setMoreOpen(!moreOpen)}
                 className={`flex items-center gap-1 px-3 py-1.5 mx-0.5 text-sm font-medium rounded-md transition-colors ${
                   moreNav.some(i => isActive(i.href))
-                    ? 'bg-gray-100 text-gray-900' 
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    ? 'bg-white/20 text-white' 
+                    : 'text-white/70 hover:text-white hover:bg-white/10'
                 }`}
               >
                 <span>More</span>
@@ -219,7 +220,7 @@ export default function AdminHeader({
                         onClick={() => setMoreOpen(false)}
                         className="dropdown-item flex items-center gap-2"
                       >
-                        <Icon className="w-4 h-4 text-gray-400" />
+                        <Icon className="w-4 h-4 text-[var(--muted-foreground)]" />
                         {item.label}
                       </Link>
                     );
@@ -232,8 +233,8 @@ export default function AdminHeader({
               href="/admin/settings"
               className={`flex items-center gap-1.5 px-3 py-1.5 mx-0.5 text-sm font-medium rounded-md transition-colors ${
                 isActive('/admin/settings') || isActive('/admin/users') || isActive('/admin/audit')
-                  ? 'bg-gray-100 text-gray-900' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  ? 'bg-white/20 text-white' 
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
               }`}
             >
               <Icons.Settings className="w-4 h-4" />
@@ -247,19 +248,21 @@ export default function AdminHeader({
           <GlobalSearch accentColor={accentColor} />
           <NotificationsCenter accentColor={accentColor} />
           
+          {/* Theme Toggle */}
+          <ThemeToggle />
+          
           {/* Quick Actions */}
           <div ref={quickRef} className="relative">
             <button
               onClick={() => setQuickOpen(!quickOpen)}
-              className="flex items-center justify-center w-8 h-8 rounded-md text-white transition-colors hover:opacity-90"
-              style={{ backgroundColor: accentColor }}
+              className="flex items-center justify-center w-8 h-8 rounded-md bg-white/20 text-white transition-colors hover:bg-white/30"
               title="Quick Actions"
             >
               <Icons.Plus className="w-4 h-4" />
             </button>
             {quickOpen && (
               <div className="dropdown w-44">
-                <div className="px-3 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Quick Actions</div>
+                <div className="px-3 py-1.5 text-[10px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Quick Actions</div>
                 {quickActions.map((action) => {
                   const Icon = Icons[action.icon];
                   return (
@@ -269,7 +272,7 @@ export default function AdminHeader({
                       onClick={() => setQuickOpen(false)}
                       className="dropdown-item flex items-center gap-2"
                     >
-                      <Icon className="w-4 h-4 text-gray-400" />
+                      <Icon className="w-4 h-4 text-[var(--muted-foreground)]" />
                       {action.label}
                     </Link>
                   );
@@ -282,7 +285,7 @@ export default function AdminHeader({
           <button
             onClick={handleLogout}
             disabled={loggingOut}
-            className="hidden sm:flex items-center gap-1.5 px-2 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50"
+            className="hidden sm:flex items-center gap-1.5 px-2 py-1.5 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-md transition-colors disabled:opacity-50"
             title="Logout"
           >
             <Icons.Logout className="w-4 h-4" />
@@ -292,7 +295,7 @@ export default function AdminHeader({
           {/* Mobile menu button */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="lg:hidden p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md"
+            className="lg:hidden p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-md"
           >
             {mobileOpen ? <Icons.X /> : <Icons.Menu />}
           </button>
@@ -301,7 +304,7 @@ export default function AdminHeader({
 
       {/* Mobile Nav */}
       {mobileOpen && (
-        <nav className="lg:hidden border-t border-gray-100 bg-white py-2 px-4 max-h-[calc(100vh-4rem)] overflow-y-auto">
+        <nav className="lg:hidden border-t border-white/10 bg-accent py-2 px-4 max-h-[calc(100vh-4rem)] overflow-y-auto">
           {[...mainNav, ...moreNav].map((item) => {
             const Icon = Icons[item.icon];
             const active = isActive(item.href);
@@ -311,7 +314,7 @@ export default function AdminHeader({
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
                 className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md ${
-                  active ? 'bg-gray-100 text-gray-900' : 'text-gray-600'
+                  active ? 'bg-white/20 text-white' : 'text-white/70 hover:text-white hover:bg-white/10'
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -323,17 +326,17 @@ export default function AdminHeader({
             href="/admin/settings"
             onClick={() => setMobileOpen(false)}
             className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md ${
-              isActive('/admin/settings') ? 'bg-gray-100 text-gray-900' : 'text-gray-600'
+              isActive('/admin/settings') ? 'bg-white/20 text-white' : 'text-white/70 hover:text-white hover:bg-white/10'
             }`}
           >
             <Icons.Settings className="w-4 h-4" />
             Settings
           </Link>
-          <hr className="my-2 border-gray-200" />
+          <hr className="my-2 border-white/10" />
           <button
             onClick={handleLogout}
             disabled={loggingOut}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md text-red-600 hover:bg-red-50 w-full text-left disabled:opacity-50"
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md text-red-300 hover:bg-red-500/20 w-full text-left disabled:opacity-50"
           >
             <Icons.Logout className="w-4 h-4" />
             {loggingOut ? 'Logging out...' : 'Logout'}
